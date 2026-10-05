@@ -1,283 +1,398 @@
 import streamlit as st
 from datetime import date
+import json
+import os
 
-# -----------------------------
+# -----------------------------------
 # PAGE CONFIGURATION
-# -----------------------------
+# -----------------------------------
+
 st.set_page_config(
     page_title="AI Attendance Taker",
-    page_icon="🤖",
+    page_icon="🎓",
     layout="centered"
 )
 
-# -----------------------------
-# CUSTOM CSS
-# -----------------------------
-st.markdown("""
-<style>
+# -----------------------------------
+# FILE FOR STORING ATTENDANCE
+# -----------------------------------
 
-.main {
-    background-color: #f5f7fb;
-}
-
-.title {
-    text-align: center;
-    font-size: 40px;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.subtitle {
-    text-align: center;
-    font-size: 18px;
-    margin-bottom: 30px;
-}
-
-.attendance-card {
-    padding: 25px;
-    border-radius: 15px;
-    background-color: white;
-    box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-}
-
-.result {
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    font-size: 22px;
-    font-weight: bold;
-    margin-top: 20px;
-}
-
-</style>
-""", unsafe_allow_html=True)
+ATTENDANCE_FILE = "attendance.json"
 
 
-# -----------------------------
+# -----------------------------------
+# LOAD ATTENDANCE DATA
+# -----------------------------------
+
+def load_attendance():
+
+    if os.path.exists(ATTENDANCE_FILE):
+
+        try:
+            with open(ATTENDANCE_FILE, "r") as file:
+                return json.load(file)
+
+        except:
+            return {}
+
+    return {}
+
+
+# -----------------------------------
+# SAVE ATTENDANCE DATA
+# -----------------------------------
+
+def save_attendance(data):
+
+    with open(ATTENDANCE_FILE, "w") as file:
+        json.dump(data, file, indent=4)
+
+
+# -----------------------------------
+# ROLL NUMBERS
+# -----------------------------------
+
+roll_numbers = [
+    "66", "67", "68", "69", "70",
+    "71", "72", "73", "74", "75",
+    "76", "77", "78", "79", "80",
+    "81", "82", "83", "84", "85",
+    "86", "87", "88", "89", "90",
+    "91", "92", "93", "94", "95",
+    "96", "97", "98", "99",
+
+    "A0", "A1", "A2", "A3", "A4",
+    "A5", "A6", "A7", "A8", "A9",
+
+    "B0", "B1", "B2", "B3", "B4",
+    "B5", "B6", "B7", "B8", "B9",
+
+    "C0", "C1", "C2", "C3", "C4",
+    "C5", "C6", "C7", "C8", "C9",
+
+    "D0",
+
+    "Ie6", "Ie7", "Ie8", "Ie9",
+    "Ie10", "Ie11", "Ie12"
+]
+
+
+# -----------------------------------
+# LOAD STORED DATA
+# -----------------------------------
+
+attendance_data = load_attendance()
+
+
+# -----------------------------------
+# SELECT DATE
+# -----------------------------------
+
+selected_date = st.date_input(
+    "📅 Select Attendance Date",
+    value=date.today(),
+    format="DD/MM/YYYY"
+)
+
+date_key = selected_date.strftime("%d/%m/%Y")
+
+
+# -----------------------------------
+# LOAD ATTENDANCE FOR SELECTED DATE
+# -----------------------------------
+
+if "current_date" not in st.session_state:
+
+    st.session_state.current_date = date_key
+
+    st.session_state.absent_rolls = set(
+        attendance_data.get(date_key, [])
+    )
+
+
+elif st.session_state.current_date != date_key:
+
+    st.session_state.current_date = date_key
+
+    st.session_state.absent_rolls = set(
+        attendance_data.get(date_key, [])
+    )
+
+
+st.info(
+    f"📅 Attendance Date: **{date_key}**"
+)
+
+
+# -----------------------------------
 # TITLE
-# -----------------------------
+# -----------------------------------
+
 st.markdown(
-    '<div class="title">🤖 AI Attendance Taker</div>',
+    """
+    <h1 style="text-align:center;">
+    🎓 AI Attendance Taker
+    </h1>
+    """,
     unsafe_allow_html=True
 )
 
 st.markdown(
-    '<div class="subtitle">Smart and Simple Daily Attendance System</div>',
+    """
+    <p style="text-align:center;">
+    Click the roll numbers of absent students
+    </p>
+    """,
     unsafe_allow_html=True
 )
 
 
-# -----------------------------
-# SESSION STATE
-# -----------------------------
-if "attendance" not in st.session_state:
-    st.session_state.attendance = []
-
-if "message" not in st.session_state:
-    st.session_state.message = ""
-
-
-# -----------------------------
-# STUDENT DETAILS
-# -----------------------------
-st.markdown("### 👤 Student Details")
-
-name = st.text_input(
-    "Enter Student Name",
-    placeholder="Example: Sindhura"
-)
-
-today = date.today()
-
-st.info(f"📅 Today's Date: {today.strftime('%d-%m-%Y')}")
-
-
-# -----------------------------
+# -----------------------------------
 # ATTENDANCE SECTION
-# -----------------------------
-st.markdown("### 📝 Mark Your Attendance")
+# -----------------------------------
 
-col1, col2 = st.columns(2)
-
-with col1:
-    present_button = st.button(
-        "✅ PRESENT",
-        use_container_width=True
-    )
-
-with col2:
-    absent_button = st.button(
-        "❌ ABSENT",
-        use_container_width=True
-    )
-
-
-# -----------------------------
-# PRESENT BUTTON
-# -----------------------------
-if present_button:
-
-    if name.strip() == "":
-        st.warning("⚠️ Please enter your name first.")
-
-    else:
-        attendance_record = {
-            "Name": name,
-            "Date": today.strftime("%d-%m-%Y"),
-            "Status": "Present"
-        }
-
-        st.session_state.attendance.append(attendance_record)
-
-        st.success("✅ Your attendance is marked PRESENT.")
-
-
-# -----------------------------
-# ABSENT BUTTON
-# -----------------------------
-if absent_button:
-
-    if name.strip() == "":
-        st.warning("⚠️ Please enter your name first.")
-
-    else:
-        attendance_record = {
-            "Name": name,
-            "Date": today.strftime("%d-%m-%Y"),
-            "Status": "Absent"
-        }
-
-        st.session_state.attendance.append(attendance_record)
-
-        st.error("❌ Your attendance is marked ABSENT.")
-
-
-# -----------------------------
-# ATTENDANCE STATISTICS
-# -----------------------------
 st.markdown("---")
 
-st.markdown("### 📊 Attendance Statistics")
+st.markdown("### 📝 Mark Attendance")
 
-total_days = len(st.session_state.attendance)
-
-present_days = sum(
-    1 for record in st.session_state.attendance
-    if record["Status"] == "Present"
-)
-
-absent_days = sum(
-    1 for record in st.session_state.attendance
-    if record["Status"] == "Absent"
+st.write(
+    "Click a roll number to mark that student as **ABSENT**. "
+    "Students who are not selected are considered **PRESENT**."
 )
 
 
-if total_days > 0:
-    percentage = (present_days / total_days) * 100
-else:
-    percentage = 0
+# -----------------------------------
+# ROLL NUMBER BUTTONS
+# -----------------------------------
+
+columns = 5
+
+for i in range(0, len(roll_numbers), columns):
+
+    cols = st.columns(columns)
+
+    for j, col in enumerate(cols):
+
+        index = i + j
+
+        if index < len(roll_numbers):
+
+            roll = roll_numbers[index]
+
+            with col:
+
+                if roll in st.session_state.absent_rolls:
+
+                    if st.button(
+                        f"❌ {roll}",
+                        key=f"absent_{roll}",
+                        use_container_width=True
+                    ):
+
+                        # Remove from absent list
+                        st.session_state.absent_rolls.remove(roll)
+
+                        # Save updated attendance
+                        attendance_data[date_key] = list(
+                            st.session_state.absent_rolls
+                        )
+
+                        save_attendance(attendance_data)
+
+                        st.rerun()
+
+                else:
+
+                    if st.button(
+                        roll,
+                        key=f"present_{roll}",
+                        use_container_width=True
+                    ):
+
+                        # Add to absent list
+                        st.session_state.absent_rolls.add(roll)
+
+                        # Save updated attendance
+                        attendance_data[date_key] = list(
+                            st.session_state.absent_rolls
+                        )
+
+                        save_attendance(attendance_data)
+
+                        st.rerun()
+
+
+# -----------------------------------
+# ATTENDANCE SUMMARY
+# -----------------------------------
+
+st.markdown("---")
+
+st.markdown("### 📊 Attendance Summary")
+
+
+total_students = len(roll_numbers)
+
+total_absent = len(
+    st.session_state.absent_rolls
+)
+
+total_present = (
+    total_students - total_absent
+)
 
 
 col1, col2, col3 = st.columns(3)
 
+
 with col1:
+
     st.metric(
-        "Total Days",
-        total_days
+        "Total Students",
+        total_students
     )
+
 
 with col2:
+
     st.metric(
-        "Present",
-        present_days
+        "✅ Total Present",
+        total_present
     )
+
 
 with col3:
+
     st.metric(
-        "Absent",
-        absent_days
+        "❌ Total Absent",
+        total_absent
     )
 
 
-st.progress(
-    int(percentage),
-    text=f"Attendance Percentage: {percentage:.2f}%"
-)
+# -----------------------------------
+# ABSENT STUDENTS
+# -----------------------------------
+
+st.markdown("### ❌ Absent Students")
 
 
-# -----------------------------
-# ATTENDANCE HISTORY
-# -----------------------------
-st.markdown("---")
+if total_absent == 0:
 
-st.markdown("### 📋 Attendance History")
-
-if len(st.session_state.attendance) > 0:
-
-    for record in reversed(st.session_state.attendance):
-
-        if record["Status"] == "Present":
-
-            st.success(
-                f"📅 {record['Date']} | "
-                f"👤 {record['Name']} | "
-                f"✅ {record['Status']}"
-            )
-
-        else:
-
-            st.error(
-                f"📅 {record['Date']} | "
-                f"👤 {record['Name']} | "
-                f"❌ {record['Status']}"
-            )
+    st.success(
+        "🎉 No students are marked absent."
+    )
 
 else:
 
-    st.info("No attendance records yet.")
+    # Keep original roll-number order
+    absent_list = [
+        roll
+        for roll in roll_numbers
+        if roll in st.session_state.absent_rolls
+    ]
+
+    st.warning(
+        "Absent Roll Numbers: "
+        + ", ".join(absent_list)
+    )
 
 
-# -----------------------------
-# AI ASSISTANT MESSAGE
-# -----------------------------
+# -----------------------------------
+# PRESENT STUDENTS
+# -----------------------------------
+
+st.markdown("### ✅ Present Students")
+
+
+present_rolls = [
+    roll
+    for roll in roll_numbers
+    if roll not in st.session_state.absent_rolls
+]
+
+
+st.success(
+    "Present Roll Numbers: "
+    + ", ".join(present_rolls)
+)
+
+
+# -----------------------------------
+# ATTENDANCE PERCENTAGE
+# -----------------------------------
+
+if total_students > 0:
+
+    present_percentage = (
+        total_present / total_students
+    ) * 100
+
+    st.progress(
+        int(present_percentage),
+        text=f"Class Attendance: {present_percentage:.2f}%"
+    )
+
+
+# -----------------------------------
+# AI ASSISTANT
+# -----------------------------------
+
 st.markdown("---")
 
 st.markdown("### 🤖 AI Attendance Assistant")
 
-if total_days == 0:
 
-    st.info(
-        "Hello! 👋 Please mark your attendance to start "
-        "tracking your attendance."
-    )
-
-elif percentage >= 75:
+if total_absent == 0:
 
     st.success(
-        f"🎉 Good job! Your attendance is {percentage:.2f}%. "
-        "You are maintaining good attendance."
+        "🎉 Excellent! All students are present today."
+    )
+
+elif total_present >= total_students * 0.75:
+
+    st.info(
+        f"👍 Good attendance today. "
+        f"{total_present} students are present and "
+        f"{total_absent} students are absent."
     )
 
 else:
 
     st.warning(
-        f"⚠️ Your attendance is {percentage:.2f}%. "
-        "Please try to attend more classes."
+        f"⚠️ Attendance is low today. "
+        f"{total_present} students are present and "
+        f"{total_absent} students are absent."
     )
 
 
-# -----------------------------
-# RESET BUTTON
-# -----------------------------
+# -----------------------------------
+# RESET CURRENT DATE
+# -----------------------------------
+
 st.markdown("---")
 
 if st.button(
-    "🔄 Reset Attendance",
+    "🔄 Reset This Date",
     use_container_width=True
 ):
 
-    st.session_state.attendance = []
-    st.session_state.message = ""
+    st.session_state.absent_rolls = set()
+
+    # Save empty attendance for this date
+    attendance_data[date_key] = []
+
+    save_attendance(attendance_data)
 
     st.rerun()
+
+
+# -----------------------------------
+# FOOTER
+# -----------------------------------
+
+st.markdown("---")
+
+st.caption(
+    "🎓 AI Attendance Taker | "
+    "Smart Classroom Attendance System"
+)
